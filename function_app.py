@@ -16,6 +16,8 @@ app = func.FunctionApp()
 @app.blob_trigger(arg_name="myblob", path="test/{name}",
                                connection="AzureWebJobsStorage") 
 def prototype_blob_trigger(myblob: func.InputStream):
+    test_text = myblob.read()
     logging.info(f"Python blob trigger function processed blob"
                 f"Name: {myblob.name}"
-                f"Blob Size: {myblob.length} bytes")
+                f"Blob Size: {myblob.length} bytes"
+                f"Blob Content: {test_text}")
