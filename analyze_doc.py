@@ -2,7 +2,8 @@ import requests
 import time
 import json
 
-def call_document_intelligence(apim_key, post_url, document):
+def call_document_intelligence(apim_key, endpoint, document):
+    post_url = endpoint + "/formrecognizer/v2.1/layout/analyze"
     headers = {
     # Request headers
     'Content-Type': 'application/pdf',

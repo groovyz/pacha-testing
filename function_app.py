@@ -18,10 +18,8 @@ def prototype_blob_trigger(myblob: func.InputStream):
     # This is the call to the Document Intelligence endpoint
     endpoint = os.environ["AzureDocumentIntelEndpoint"]
     apim_key = os.environ["AzureDocumentIntelKey"]
-    post_url = endpoint + "/formrecognizer/v2.1/layout/analyze"
     source = myblob.read()
-    results = call_document_intelligence(apim_key, post_url, source)
-    print(results)
+    results = call_document_intelligence(apim_key, endpoint, source)
 
     logging.info(f"Python blob trigger function processed blob"
                 f"Name: {myblob.name}"
