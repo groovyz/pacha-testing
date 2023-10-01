@@ -9,3 +9,4 @@ azure-identity
 requests
 pandas
 numpy
+openai

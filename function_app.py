@@ -7,7 +7,8 @@ import os
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from analyze_doc import call_document_intelligence
+from analyze_doc import get_text_from, get_questions_answers_from
+
 
 app = func.FunctionApp()
 
@@ -15,11 +16,10 @@ app = func.FunctionApp()
                                connection="AzureWebJobsStorage")
  
 def prototype_blob_trigger(myblob: func.InputStream):
-    # This is the call to the Document Intelligence endpoint
-    endpoint = os.environ["AzureDocumentIntelEndpoint"]
-    apim_key = os.environ["AzureDocumentIntelKey"]
+
     source = myblob.read()
-    results = call_document_intelligence(apim_key, endpoint, source)
+    results = get_text_from(source)
+    questionsandanswers = get_questions_answers_from(results["analyzeResult"]["content"])
 
     logging.info(f"Python blob trigger function processed blob"
                 f"Name: {myblob.name}"
