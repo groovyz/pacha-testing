@@ -9,7 +9,7 @@ def get_text_from(document):
 
     endpoint = os.environ["AzureDocumentIntelEndpoint"]
     apim_key = os.environ["AzureDocumentIntelKey"]
-    post_url = endpoint + "/formrecognizer/v2.1/layout/analyze"
+    post_url = endpoint + "/formrecognizer/documentModels/prebuilt-read:analyze?api-version=2023-07-31"
     headers = {
     # Request headers
     'Content-Type': 'application/pdf',
@@ -87,7 +87,13 @@ def get_questions_answers_from(text):
     messages=messages,
     functions=functions,
     function_call={"name": "get_questions_and_answers"},  
-)
-    print(response['choices'][0]['message'])
+    )
+    if isinstance(response, dict):
+        qaobject = json.loads(response["function_call"]["arguments"])
+        allqas = qaobject["questions_and_answers"]
+        return allqas
+    else:
+        quit()
+    
 
 

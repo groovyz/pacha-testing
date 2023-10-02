@@ -21,6 +21,5 @@
 
 	// Set `remoteUser` to `root` to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
-
-	"postCreateCommand": "pip install -r /workspaces/prototype/requirements.txt"
+	"postCreateCommand": "pip install --upgrade pip && pip install -r /workspaces/prototype/requirements.txt"
 }

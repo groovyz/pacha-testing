@@ -19,7 +19,7 @@ def prototype_blob_trigger(myblob: func.InputStream):
 
     source = myblob.read()
     results = get_text_from(source)
-    questionsandanswers = get_questions_answers_from(results["analyzeResult"]["content"])
+    get_questions_answers_from(results["analyzeResult"]["content"])
 
     logging.info(f"Python blob trigger function processed blob"
                 f"Name: {myblob.name}"
