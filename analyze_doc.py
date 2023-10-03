@@ -48,11 +48,12 @@ def get_text_from(document):
 def get_questions_answers_from(text):
     # This is a call to an OpenAI Function Call
     openai.api_type = "azure"
-    openai.api_base = "https://pacha.openai.azure.com/"
+    openai.api_base = os.environ["AzureOpenAIEndpoint"]
     openai.api_version = "2023-07-01-preview"
-    openai.api_key = "6999ef57bf0d473690c756f5cdacdbcd"
+    openai.api_key = os.environ["AzureOpenAIKey"]
 
-    messages= [{"role": "user", "content": f"Get questions and answers from {text}"}]
+    messages= [{"role": "system", "content": "You're an assistant that extracts questions and answers. Only use the functions you have been provided with."},
+        {"role": "user", "content": f"Get questions and answers from {text}"}]
     functions = [
         {
             "name": "get_questions_and_answers",
@@ -93,7 +94,23 @@ def get_questions_answers_from(text):
         allqas = qaobject["questions_and_answers"]
         return allqas
     else:
+        print("GET questions and answers from document failed:\n%s")
         quit()
-    
 
+def get_embedding(text, model="text-embedding-ada-002"):
+   text = text.replace("\n", " ")
+   response = openai.Embedding.create(input = [text], model=model)
+   if isinstance(response, dict):
+       return response['data'][0]['embedding']
+   else:
+       print("GET embedding failed:\n%s")
+       quit()
+
+def get_qa_with_embeddings_from(qas):
+    embedded_qas= []
+    for qa in qas:
+        q_embed = get_embedding(qa.get("question"))
+        new_dict = {**qa, **{'embedding': q_embed}}
+        embedded_qas.append(new_dict)
+    return embedded_qas
 

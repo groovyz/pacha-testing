@@ -2,12 +2,7 @@ import azure.functions as func
 import logging
 from azure.storage.blob import BlobServiceClient
 import azure.functions as func
-from requests import get, post
-import os
-from collections import OrderedDict
-import numpy as np
-import pandas as pd
-from analyze_doc import get_text_from, get_questions_answers_from
+import analyze_doc
 
 
 app = func.FunctionApp()
@@ -17,10 +12,11 @@ app = func.FunctionApp()
  
 def prototype_blob_trigger(myblob: func.InputStream):
 
-    source = myblob.read()
-    results = get_text_from(source)
-    qas = get_questions_answers_from(results["analyzeResult"]["content"])
-
     logging.info(f"Python blob trigger function processed blob"
                 f"Name: {myblob.name}"
                 f"Blob Size: {myblob.length} bytes")
+
+    source = myblob.read()
+    results = analyze_doc.get_text_from(source)
+    qas = analyze_doc.get_questions_answers_from(results["analyzeResult"]["content"])
+    embedded_qas = analyze_doc.get_qa_with_embeddings_from(qas)
