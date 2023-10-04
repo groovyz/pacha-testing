@@ -10,3 +10,6 @@ requests
 pandas
 numpy
 openai
+pgvector
+sqlalchemy
+sqlalchemy.orm
