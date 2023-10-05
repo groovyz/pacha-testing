@@ -27,10 +27,4 @@ def insert_into_database(embedded_qas, path):
         session.add(new_reference)
         session.commit()
     session.close()
-    return "INSERTED ALL ITEMS FROM Q&AS, SESSION CLOSED"
-
-
-
-
-
-	
+    print("INSERTED ALL ITEMS FROM Q&AS, SESSION CLOSED")
