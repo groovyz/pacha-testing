@@ -3,6 +3,7 @@ import logging
 from azure.storage.blob import BlobServiceClient
 import azure.functions as func
 import analyze_doc
+import insert_to_db
 
 
 app = func.FunctionApp()
@@ -20,3 +21,4 @@ def prototype_blob_trigger(myblob: func.InputStream):
     results = analyze_doc.get_text_from(source)
     qas = analyze_doc.get_questions_answers_from(results["analyzeResult"]["content"])
     embedded_qas = analyze_doc.get_qa_with_embeddings_from(qas)
+    insert_to_db.insert_into_database(embedded_qas, myblob.uri)

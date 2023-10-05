@@ -13,3 +13,4 @@ openai
 pgvector
 sqlalchemy
 sqlalchemy.orm
+psycopg2

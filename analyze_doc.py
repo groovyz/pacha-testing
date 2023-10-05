@@ -87,19 +87,23 @@ def get_questions_answers_from(text):
     engine="pacha-gpt4",
     messages=messages,
     functions=functions,
+    temperature=0,
     function_call={"name": "get_questions_and_answers"},  
     )
     if isinstance(response, dict):
-        qaobject = json.loads(response["function_call"]["arguments"])
+        resp_text = response["choices"][0]["message"]
+        qaobject = json.loads(resp_text["function_call"]["arguments"])
         allqas = qaobject["questions_and_answers"]
+        if len(allqas) != 0:
+            print("GET questions and answers from document succeeded:\n%s")
         return allqas
     else:
         print("GET questions and answers from document failed:\n%s")
         quit()
 
-def get_embedding(text, model="text-embedding-ada-002"):
+def get_embedding(text, model="pacha-embed"):
    text = text.replace("\n", " ")
-   response = openai.Embedding.create(input = [text], model=model)
+   response = openai.Embedding.create(input = [text], engine=model)
    if isinstance(response, dict):
        return response['data'][0]['embedding']
    else:

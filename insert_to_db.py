@@ -12,11 +12,24 @@ class References(Base):
 	question: Mapped[str] = mapped_column(String(64000))
 	answer: Mapped[str] = mapped_column(String(64000))
 	embedding = mapped_column(Vector(1536))
+	
+def db_connect():
+    engine = create_engine(os.environ["AzureCosmosDBString"])
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine)
+    session = factory()
+    return session
 
-engine = create_engine(os.environ["AzureCosmosDBString"])
-References.metadata.create_all(engine)
-factory = sessionmaker(bind=engine)
-session = factory()
+def insert_into_database(embedded_qas, path):
+    session = db_connect()
+    for item in embedded_qas:
+        new_reference = References(folder=path, question=item["question"], answer=item["answer"], embedding=item["embedding"])
+        session.add(new_reference)
+        session.commit()
+    session.close()
+    return "INSERTED ALL ITEMS FROM Q&AS, SESSION CLOSED"
+
+
 
 
 
