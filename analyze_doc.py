@@ -107,7 +107,7 @@ def get_embedding(text, model="pacha-embed"):
    if isinstance(response, dict):
        return response['data'][0]['embedding']
    else:
-       print("GET embedding failed:\n%s")
+       print(f"GET embedding instance \n {text} \n failed:\n%s")
        quit()
 
 def get_qa_with_embeddings_from(qas):
