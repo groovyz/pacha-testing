@@ -101,6 +101,58 @@ def get_questions_answers_from(text):
         print("GET questions and answers from document failed:\n%s")
         quit()
 
+def get_questions_from(text):
+    # This is a call to an OpenAI Function Call
+    openai.api_type = "azure"
+    openai.api_base = os.environ["AzureOpenAIEndpoint"]
+    openai.api_version = "2023-07-01-preview"
+    openai.api_key = os.environ["AzureOpenAIKey"]
+
+    messages= [{"role": "system", "content": "You're an assistant that extracts questions. Only use the functions you have been provided with."},
+        {"role": "user", "content": f"Identify and retrieve questions from {text}"}]
+    functions = [
+        {
+            "name": "get_questions",
+            "description": "Identify and retrieve questions from the string blob provided.",
+            "parameters": {
+                "type" : "object",
+                "properties": {
+                    "questions":{
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "question":{
+                                    "type": "string",
+                                    "description": "A question identified from a string blob"
+                                }
+                            }
+                        }
+                    }           
+                },
+                "required": ["questions"]
+            }
+        }
+    ]
+
+    response = openai.ChatCompletion.create(
+    engine="pacha-gpt4",
+    messages=messages,
+    functions=functions,
+    temperature=0,
+    function_call={"name": "get_questions"},  
+    )
+    if isinstance(response, dict):
+        resp_text = response["choices"][0]["message"]
+        qobject = json.loads(resp_text["function_call"]["arguments"])
+        allqs = qobject["questions"]
+        if len(allqs) != 0:
+            print("GET questions from document succeeded:\n%s")
+        return allqs
+    else:
+        print("GET questions from document failed:\n%s")
+        quit()
+
 def get_embedding(text, model="pacha-embed"):
    text = text.replace("\n", " ")
    response = openai.Embedding.create(input = [text], engine=model)
@@ -110,11 +162,11 @@ def get_embedding(text, model="pacha-embed"):
        print(f"GET embedding instance \n {text} \n failed:\n%s")
        quit()
 
-def get_qa_with_embeddings_from(qas):
-    embedded_qas= []
-    for qa in qas:
-        q_embed = get_embedding(qa.get("question"))
-        new_dict = {**qa, **{'embedding': q_embed}}
-        embedded_qas.append(new_dict)
-    return embedded_qas
+def get_embeddings_from(objects):
+    embedded= []
+    for o in objects:
+        q_embed = get_embedding(o.get("question"))
+        new_dict = {**o, **{'embedding': q_embed}}
+        embedded.append(new_dict)
+    return embedded
 

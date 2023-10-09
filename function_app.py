@@ -2,8 +2,8 @@ import azure.functions as func
 import logging
 from azure.storage.blob import BlobServiceClient
 import azure.functions as func
-import analyze_doc
-import insert_to_db
+import doc_operations
+import call_db
 
 
 app = func.FunctionApp()
@@ -18,10 +18,10 @@ def prototype_blob_trigger(myblob: func.InputStream):
                 f"Blob Size: {myblob.length} bytes")
 
     source = myblob.read()
-    results = analyze_doc.get_text_from(source)
-    qas = analyze_doc.get_questions_answers_from(results["analyzeResult"]["content"])
-    embedded_qas = analyze_doc.get_qa_with_embeddings_from(qas)
-    insert_to_db.insert_into_database(embedded_qas, myblob.uri)
+    results = doc_operations.get_text_from(source)
+    qas = doc_operations.get_questions_answers_from(results["analyzeResult"]["content"])
+    embedded_qas = doc_operations.get_embeddings_from(qas)
+    call_db.insert_into_database(embedded_qas, myblob.uri)
 
 
 
@@ -31,3 +31,9 @@ def prototype_input_trigger(askblob: func.InputStream):
     logging.info(f"Python blob trigger ask function processed blob"
                 f"Name: {askblob.name}"
                 f"Blob Size: {askblob.length} bytes")
+    asksource = askblob.read()
+    askresults = doc_operations.get_text_from(asksource)
+    askqs = doc_operations.get_questions_from(askresults["analyzeResult"]["content"])
+    embedded_askqs = doc_operations.get_embeddings_from(askqs)
+    all_similar_questions = call_db.get_closest_neighbors_of(embedded_askqs)
+
