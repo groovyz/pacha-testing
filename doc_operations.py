@@ -3,6 +3,7 @@ import time
 import json
 import openai
 import os
+import pandas as pd
 
 def get_text_from(document):
     # This is a call to the document intelligence endpoint
@@ -170,3 +171,59 @@ def get_embeddings_from(objects):
         embedded.append(new_dict)
     return embedded
 
+def get_openai_response_to(similar_obj):
+    openai.api_type = "azure"
+    openai.api_base = os.environ["AzureOpenAIEndpoint"]
+    openai.api_version = "2023-07-01-preview"
+    openai.api_key = os.environ["AzureOpenAIKey"]
+
+    context = "\n".join(similar_obj["similar-answers"])
+    question = similar_obj["question"]
+
+    messages= [{"role": "system", "content": "You're a consultant who specializes in crafting responses to RFP (Request for Proposal) questions when given a context. If the context is not enough, return an empty string. Only use the functions you have been provided with."},
+        {"role": "user", "content": f"Here is the context: \n\n {context} \n Using the context, help me craft an answer to {question}"}]
+    
+    functions = [
+        {
+            "name": "craft_response",
+            "description": "Craft a response a particular to RFP (Request for Proposal) question when given a context. If the context is not enough, return an empty string.",
+            "parameters": {
+                "type" : "object",
+                "properties": {
+                    "question_response" : {
+                        "type": "string",
+                        "description": "The written response to the question provided with the context"
+                    }        
+                },
+                "required": ["questions_response"]
+            }
+        }
+    ]
+
+    response = openai.ChatCompletion.create(
+    engine="pacha-gpt4",
+    messages=messages,
+    functions=functions,
+    temperature=0,
+    function_call={"name": "craft_response"},  
+    )
+    if isinstance(response, dict):
+        resp_text = response["choices"][0]["message"]
+        q_response = json.loads(resp_text["function_call"]["arguments"])
+        return q_response
+
+def create_all_responses(similar_objs):
+    raw_responses = []
+    for obj in similar_objs:
+        response = get_openai_response_to(obj)
+        if isinstance(response, dict):
+            new_dict = {**obj, **response}
+        else:
+            new_dict = {**obj, **{'question_response': ''}}
+        raw_responses.append(new_dict)
+    return raw_responses
+
+def create_csv(responses):
+    responses_df = pd.DataFrame(responses)
+    responses_csv = responses_df.to_csv(index=False,mode="w")
+    return responses_csv
