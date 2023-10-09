@@ -221,9 +221,11 @@ def create_all_responses(similar_objs):
         else:
             new_dict = {**obj, **{'question_response': ''}}
         raw_responses.append(new_dict)
+    print("RAW RESPONSES SUCCESSFULLY CREATED")
     return raw_responses
 
 def create_csv(responses):
     responses_df = pd.DataFrame(responses)
     responses_csv = responses_df.to_csv(index=False,mode="w")
+    print("CSV SUCCESSFULLY CREATED")
     return responses_csv
