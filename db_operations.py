@@ -14,7 +14,7 @@ class References(Base):
 	embedding = mapped_column(Vector(1536))
 	
 def db_connect():
-    engine = create_engine(os.environ["AzureCosmosDBString"])
+    engine = create_engine(os.environ["CosmosDbConnectionString"])
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine)
     session = factory()
