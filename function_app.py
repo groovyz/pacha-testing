@@ -6,7 +6,6 @@ import doc_operations
 import db_operations
 import os
 
-
 app = func.FunctionApp()
 
 @app.blob_trigger(arg_name="myblob", path="test/input-{name}",

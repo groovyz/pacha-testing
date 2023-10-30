@@ -6,3 +6,5 @@ __queuestorage__
 local.settings.json
 test
 .venv
+.devcontainer
+test_analyze_doc.py

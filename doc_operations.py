@@ -4,6 +4,8 @@ import json
 import openai
 import os
 import pandas as pd
+import logging
+import traceback
 
 def get_text_from(document):
     # This is a call to the document intelligence endpoint
@@ -19,9 +21,9 @@ def get_text_from(document):
     resp = requests.post(url=post_url, data=document, headers=headers)
 
     if resp.status_code != 202:
-        print("POST analyze failed:\n%s" % resp.text)
+        logging.info(f"POST analyze failed:\n{resp.text}")
         quit()
-    print("POST analyze succeeded:\n%s" % resp.headers)
+    logging.info(f"POST analyze succeeded:\n{resp.headers}")
     get_url = resp.headers["operation-location"]
 
     wait_sec = 25
@@ -36,10 +38,10 @@ def get_text_from(document):
     status = resp_json["status"]
 
     if status == "succeeded":
-        print("POST Layout Analysis succeeded:\n%s")
+        logging.info("POST Layout Analysis succeeded:\n")
         results = resp_json
     else:
-        print("GET Layout results failed:\n%s")
+        logging.info(f"GET Layout results failed:\n {status}")
         quit()
         
     results = resp_json
@@ -83,23 +85,28 @@ def get_questions_answers_from(text):
             }
         }
     ]
+    try:
+        response = openai.ChatCompletion.create(
+        engine="pacha-gpt4",
+        messages=messages,
+        functions=functions,
+        temperature=0,
+        function_call={"name": "get_questions_and_answers"},  
+        )
+    except Exception as e:
+        logging.info(f"OPENAI CALL FOR EXTRACTING Q & A FAILED: \n {e} \n")
+        logging.error(traceback.format_exc())
+        quit()
 
-    response = openai.ChatCompletion.create(
-    engine="pacha-gpt4",
-    messages=messages,
-    functions=functions,
-    temperature=0,
-    function_call={"name": "get_questions_and_answers"},  
-    )
     if isinstance(response, dict):
         resp_text = response["choices"][0]["message"]
         qaobject = json.loads(resp_text["function_call"]["arguments"])
         allqas = qaobject["questions_and_answers"]
         if len(allqas) != 0:
-            print("GET questions and answers from document succeeded:\n%s")
+            logging.info("GET questions and answers from document succeeded\n")
         return allqas
     else:
-        print("GET questions and answers from document failed:\n%s")
+        logging.info(f"GET questions and answers from document failed:\n OPENAI DID NOT RETURN A DICTIONARY - RESPONSE IS {response}")
         quit()
 
 def get_questions_from(text):
@@ -135,33 +142,44 @@ def get_questions_from(text):
             }
         }
     ]
-
-    response = openai.ChatCompletion.create(
-    engine="pacha-gpt4",
-    messages=messages,
-    functions=functions,
-    temperature=0,
-    function_call={"name": "get_questions"},  
-    )
+    try:
+        response = openai.ChatCompletion.create(
+        engine="pacha-gpt4",
+        messages=messages,
+        functions=functions,
+        temperature=0,
+        function_call={"name": "get_questions"},  
+        )
+    except Exception as e:
+        logging.info(f"OPENAI CALL FOR EXTRACTING QUESTIONS FAILED: \n {e} \n")
+        logging.error(traceback.format_exc())
+        quit()
+        
     if isinstance(response, dict):
         resp_text = response["choices"][0]["message"]
         qobject = json.loads(resp_text["function_call"]["arguments"])
         allqs = qobject["questions"]
         if len(allqs) != 0:
-            print("GET questions from document succeeded:\n%s")
+            logging.info("GET questions from document succeeded:\n")
         return allqs
     else:
-        print("GET questions from document failed:\n%s")
+        logging.info("GET questions from document failed:\n")
         quit()
 
 def get_embedding(text, model="pacha-embed"):
-   text = text.replace("\n", " ")
-   response = openai.Embedding.create(input = [text], engine=model)
-   if isinstance(response, dict):
-       return response['data'][0]['embedding']
-   else:
-       print(f"GET embedding instance \n {text} \n failed:\n%s")
-       quit()
+    text = text.replace("\n", " ")
+    try:
+        response = openai.Embedding.create(input = [text], engine=model)
+    except Exception as e:
+        logging.info(f"OPENAI CALL TO GET EMBEDDING INSTANCE FAILED: \n {e} \n")
+        logging.error(traceback.format_exc())
+        quit()
+
+    if isinstance(response, dict):
+        return response['data'][0]['embedding']
+    else:
+        logging.info(f"GET embedding instance \n {text} \n failed - NOT A DICTIONARY\n")
+        quit()
 
 def get_embeddings_from(objects):
     embedded= []
@@ -169,6 +187,7 @@ def get_embeddings_from(objects):
         q_embed = get_embedding(o.get("question"))
         new_dict = {**o, **{'embedding': q_embed}}
         embedded.append(new_dict)
+    logging.info(f"ALL EMBEDDINGS PROCESSED")
     return embedded
 
 def get_openai_response_to(similar_obj):
@@ -199,14 +218,19 @@ def get_openai_response_to(similar_obj):
             }
         }
     ]
+    try:
+        response = openai.ChatCompletion.create(
+        engine="pacha-gpt4",
+        messages=messages,
+        functions=functions,
+        temperature=0,
+        function_call={"name": "craft_response"},  
+        )
+    except Exception as e:
+        logging.info(f"OPENAI CALL FOR CREATING RESPONSES FAILED ERROR: \n {e} \n")
+        logging.error(traceback.format_exc())
+        quit()
 
-    response = openai.ChatCompletion.create(
-    engine="pacha-gpt4",
-    messages=messages,
-    functions=functions,
-    temperature=0,
-    function_call={"name": "craft_response"},  
-    )
     if isinstance(response, dict):
         resp_text = response["choices"][0]["message"]
         q_response = json.loads(resp_text["function_call"]["arguments"])
@@ -221,11 +245,21 @@ def create_all_responses(similar_objs):
         else:
             new_dict = {**obj, **{'question_response': ''}}
         raw_responses.append(new_dict)
-    print("RAW RESPONSES SUCCESSFULLY CREATED")
+    logging.info("RAW RESPONSES SUCCESSFULLY CREATED")
     return raw_responses
 
 def create_csv(responses):
     responses_df = pd.DataFrame(responses)
     responses_csv = responses_df.to_csv(index=False,mode="w")
-    print("CSV SUCCESSFULLY CREATED")
+    logging.info("CSV SUCCESSFULLY CREATED")
     return responses_csv
+
+def send_email_notification(blob_name, msg):
+    s = requests.session()
+    s.headers = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+    }
+    url = os.environ["EmailEndpoint"]
+    https = s.post(url, json={"email": blob_name, "status": msg})
+    return https.status_code

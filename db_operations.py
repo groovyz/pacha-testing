@@ -2,6 +2,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import create_engine, select, String
 from sqlalchemy.orm import sessionmaker, declarative_base, Mapped, mapped_column
 import os
+import logging
 
 Base = declarative_base()
 
@@ -27,7 +28,8 @@ def insert_into_database(embedded_qas, path):
         session.add(new_reference)
         session.commit()
     session.close()
-    print("INSERTED ALL ITEMS FROM Q&AS, SESSION CLOSED")
+    num_embedded_qas = len(embedded_qas)
+    logging.info(f"INSERTED {num_embedded_qas} ITEMS FROM Q&AS, SESSION CLOSED")
 
 def get_closest_neighbors_of(embedded_qs):
     qs_and_similar = []
@@ -41,5 +43,5 @@ def get_closest_neighbors_of(embedded_qs):
             similar_as.append(reference.answer)
         qs_and_similar.append({"question": question["question"], "similiar-questions": similar_qs, "similar-answers": similar_as})
     session.close()
-    print("GET CLOSEST NEIGHBORS SUCCEEDED, SESSION CLOSED")
+    logging.info("GET 3 CLOSEST NEIGHBORS SUCCEEDED, SESSION CLOSED")
     return qs_and_similar
