@@ -190,14 +190,11 @@ def get_embeddings_from(objects):
     logging.info(f"ALL EMBEDDINGS PROCESSED")
     return embedded
 
-def get_openai_response_to(similar_obj):
+def get_openai_response_to(context, question):
     openai.api_type = "azure"
     openai.api_base = os.environ["AzureOpenAIEndpoint"]
     openai.api_version = "2023-07-01-preview"
     openai.api_key = os.environ["AzureOpenAIKey"]
-
-    context = "\n".join(similar_obj["similar-answers"])
-    question = similar_obj["question"]
 
     messages= [{"role": "system", "content": "You're a consultant who specializes in crafting responses to RFP (Request for Proposal) questions when given a context. If the context is not enough, return an empty string. Only use the functions you have been provided with."},
         {"role": "user", "content": f"Here is the context: \n\n {context} \n Using the context, help me craft an answer to {question}"}]
@@ -239,7 +236,9 @@ def get_openai_response_to(similar_obj):
 def create_all_responses(similar_objs):
     raw_responses = []
     for obj in similar_objs:
-        response = get_openai_response_to(obj)
+        context = "\n".join(obj["similar-answers"])
+        question = obj["question"]
+        response = get_openai_response_to(context, question)
         if isinstance(response, dict):
             new_dict = {**obj, **response}
         else:
@@ -254,12 +253,20 @@ def create_csv(responses):
     logging.info("CSV SUCCESSFULLY CREATED")
     return responses_csv
 
-def send_email_notification(blob_name, msg):
+def send_email_notification(blob_name, status, msg):
     s = requests.session()
     s.headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json'
     }
-    url = os.environ["EmailEndpoint"]
-    https = s.post(url, json={"email": blob_name, "status": msg})
+    url = os.environ["NotificationEndpoint"]
+    https = s.post(url, json={"email": blob_name, "status": status, "message": msg})
     return https.status_code
+
+def format_output_path(input_path):
+    blob_path_components = f"{input_path}".split(os.sep)
+    out_path_split = blob_path_components[1:-1]
+    out_path_split.append(os.path.splitext(blob_path_components[-1])[0]+"-result.csv")
+    out_path_split.insert(0,"pilotout")
+    out_path = os.path.join(*out_path_split)
+    return out_path
