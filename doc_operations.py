@@ -87,7 +87,7 @@ def get_questions_answers_from(text):
     ]
     try:
         response = openai.ChatCompletion.create(
-        engine="pacha-gpt4",
+        engine="pacha-gpt4-32k",
         messages=messages,
         functions=functions,
         temperature=0,
@@ -144,7 +144,7 @@ def get_questions_from(text):
     ]
     try:
         response = openai.ChatCompletion.create(
-        engine="pacha-gpt4",
+        engine="pacha-gpt4-32k",
         messages=messages,
         functions=functions,
         temperature=0,
@@ -261,7 +261,7 @@ def send_email_notification(blob_name, status, msg):
     }
     url = os.environ["NotificationEndpoint"]
     https = s.post(url, json={"email": blob_name, "status": status, "message": msg})
-    return https.status_code
+    return https
 
 def format_output_path(input_path):
     blob_path_components = f"{input_path}".split(os.sep)

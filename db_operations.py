@@ -9,7 +9,7 @@ Base = declarative_base()
 class References(Base):
 	__tablename__ = "references"
 	id: Mapped[int] = mapped_column(primary_key=True)
-	folder: Mapped[str] = mapped_column(String(100))
+	folder: Mapped[str] = mapped_column(String(1000))
 	question: Mapped[str] = mapped_column(String(64000))
 	answer: Mapped[str] = mapped_column(String(64000))
 	embedding = mapped_column(Vector(1536))
