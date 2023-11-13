@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import logging
 import traceback
+import time
 
 def get_text_from(document):
     # This is a call to the document intelligence endpoint
@@ -169,28 +170,31 @@ def get_questions_from(text):
 def get_embedding(text, model="pacha-embed"):
     text = text.replace("\n", " ")
     try:
+        time.sleep(0.2)
         response = openai.Embedding.create(input = [text], engine=model)
     except Exception as e:
         logging.info(f"OPENAI CALL TO GET EMBEDDING INSTANCE FAILED: \n {e} \n")
         logging.error(traceback.format_exc())
-        quit()
+        response = None
 
     if isinstance(response, dict):
         return response['data'][0]['embedding']
     else:
         logging.info(f"GET embedding instance \n {text} \n failed - NOT A DICTIONARY\n")
-        quit()
+        return []
 
 def get_embeddings_from(objects):
     embedded= []
     for o in objects:
         q_embed = get_embedding(o.get("question"))
-        new_dict = {**o, **{'embedding': q_embed}}
-        embedded.append(new_dict)
+        if len(q_embed) != 0:
+            new_dict = {**o, **{'embedding': q_embed}}
+            embedded.append(new_dict)
     logging.info(f"ALL EMBEDDINGS PROCESSED")
     return embedded
 
 def get_openai_response_to(context, question):
+    time.sleep(1)
     openai.api_type = "azure"
     openai.api_base = os.environ["AzureOpenAIEndpoint"]
     openai.api_version = "2023-07-01-preview"
@@ -226,7 +230,7 @@ def get_openai_response_to(context, question):
     except Exception as e:
         logging.info(f"OPENAI CALL FOR CREATING RESPONSES FAILED ERROR: \n {e} \n")
         logging.error(traceback.format_exc())
-        quit()
+        response = None
 
     if isinstance(response, dict):
         resp_text = response["choices"][0]["message"]
@@ -263,10 +267,9 @@ def send_email_notification(blob_name, status, msg):
     https = s.post(url, json={"email": blob_name, "status": status, "message": msg})
     return https
 
-def format_output_path(input_path):
-    blob_path_components = f"{input_path}".split(os.sep)
+def format_output_path(blob_path_components):
     out_path_split = blob_path_components[1:-1]
     out_path_split.append(os.path.splitext(blob_path_components[-1])[0]+"-result.csv")
-    out_path_split.insert(0,"pilotout")
+    #out_path_split.insert(0,"pilotout")
     out_path = os.path.join(*out_path_split)
     return out_path

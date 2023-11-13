@@ -29,8 +29,8 @@ def prototype_blob_trigger(myblob: func.InputStream):
         final_response = doc_operations.send_email_notification(email, "success", f"{file_name} was successfully loaded into the Elvish Database")
         logging.info("FUNCTION SUCCEEDED")
     except Exception as e:
-        final_response = doc_operations.send_email_notification(email, "failure", f"{file_name} failed to load into the Elvish Database, error was {str(e)} <br><br> Please contact Elvish support at sb@offgroove.com")
-        logging.info(f"FUNCTION FAILED, ERROR CODE: {final_response.status_code}")
+        final_response = doc_operations.send_email_notification(email, "failure", f"{file_name} failed to load into the Elvish Database, error was {str(e)} <br><br> Please contact Elvish support at sb@offgroove.com or zhao@offgroove.com")
+        logging.info(f"FUNCTION FAILED, ERROR: {str(e)}")
         
 
 
@@ -54,10 +54,10 @@ def prototype_input_trigger(askblob: func.InputStream):
 
         # This is the connection to the blob storage, with the Azure Python SDK
         blob_service_client = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
-        container_client=blob_service_client.get_container_client("test")
+        container_client=blob_service_client.get_container_client("pilotout")
 
         out_path = doc_operations.format_output_path(path_components)
         container_client.upload_blob(name=out_path,data=responses_csv)
     except Exception as e:
-        logging.info(f"FAILURE, ERROR WAS {e}")
-        doc_operations.send_email_notification(email, "failure", f"{file_name} failed to retrieve answers, error was {str(e)} <br><br> Please contact Elvish support at sb@offgroove.com")
+        logging.info(f"FAILURE, ERROR WAS {str(e)}")
+        doc_operations.send_email_notification(email, "failure", f"{file_name} failed to retrieve answers, error was {str(e)} <br><br> Please contact Elvish support at sb@offgroove.com or zhao@offgroove.com")
