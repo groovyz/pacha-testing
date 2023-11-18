@@ -94,8 +94,8 @@ def get_questions_answers_from(text):
         #print(text)
         response = client.chat.completions.create(
         model="gpt-4",
-        messages=messages,
-        tools=tools,
+        messages=messages, # type: ignore
+        tools=tools, # type: ignore
         tool_choice= {"type": "function", "function": {"name": "get_questions_and_answers"}},  
         )
     except Exception as e:
@@ -156,8 +156,8 @@ def get_questions_from(text):
     try:
         response = client.chat.completions.create(
         model="gpt-4",
-        messages=messages,
-        tools=tools,
+        messages=messages, # type: ignore
+        tools=tools, # type: ignore
         tool_choice= {"type": "function", "function": {"name": "get_questions"}},  
         )
     except Exception as e:
@@ -238,8 +238,8 @@ def get_openai_response_to(context, question):
     try:
         response = client.chat.completions.create(
         model="gpt-4",
-        messages=messages,
-        tools=tools,
+        messages=messages, # type: ignore
+        tools=tools, # type: ignore
         tool_choice= {"type": "function", "function": {"name": "craft_response"}},  
         )
     except Exception as e:
@@ -247,8 +247,8 @@ def get_openai_response_to(context, question):
         logging.error(traceback.format_exc())
         response = None
  
-    resp_text = response.choices[0].message
-    q_response = json.loads(resp_text.tool_calls[0].function.arguments, strict=False)
+    resp_text = response.choices[0].message # type: ignore
+    q_response = json.loads(resp_text.tool_calls[0].function.arguments, strict=False) # type: ignore
     return q_response
 
     '''
