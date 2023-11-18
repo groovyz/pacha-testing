@@ -43,6 +43,7 @@ def prototype_input_trigger(askblob: func.InputStream):
     path_components = f"{askblob.name}".split(os.sep)
     email = path_components[2]
     file_name = path_components[-1]
+ 
     try:
         asksource = askblob.read()
         askresults = doc_operations.get_text_from(asksource)

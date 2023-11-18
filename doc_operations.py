@@ -1,7 +1,8 @@
 import requests
 import time
 import json
-import openai
+#import openai
+from openai import OpenAI
 import os
 import pandas as pd
 import logging
@@ -50,17 +51,19 @@ def get_text_from(document):
     return results
 
 def get_questions_answers_from(text):
+    client = OpenAI()
     # This is a call to an OpenAI Function Call
-    openai.api_type = "azure"
-    openai.api_base = os.environ["AzureOpenAIEndpoint"]
-    openai.api_version = "2023-07-01-preview"
-    openai.api_key = os.environ["AzureOpenAIKey"]
+    #openai.api_type = "azure"
+    #openai.api_base = os.environ["AzureOpenAIEndpoint"]
+    #openai.api_version = "2023-07-01-preview"
+    #openai.api_key = os.environ["AzureOpenAIKey"]
 
-    messages= [{"role": "system", "content": "You're an assistant that extracts questions and answers. Only use the functions you have been provided with."},
-        {"role": "user", "content": f"Get questions and answers from {text}"}]
-    functions = [
+    messages= [{"role": "system", "content": "You're an assistant that extracts questions and answers. Only use the functions you have been provided. Extract the entirety of questions and answers, do not truncate."},
+        {"role": "user", "content": f"Get all questions and answers from {text}"}]
+    tools = [
         {
-            "name": "get_questions_and_answers",
+            "type": "function",
+            "function": {"name": "get_questions_and_answers",
             "description": "Identify and retrieve question and answer pairs from the string blob provided.",
             "parameters": {
                 "type" : "object",
@@ -84,27 +87,29 @@ def get_questions_answers_from(text):
                 },
                 "required": ["questions_and_answers"]
             }
+            }
         }
     ]
     try:
-        response = openai.ChatCompletion.create(
-        engine="pacha-gpt4-32k",
+        #print(text)
+        response = client.chat.completions.create(
+        model="gpt-4",
         messages=messages,
-        functions=functions,
-        temperature=0,
-        function_call={"name": "get_questions_and_answers"},  
+        tools=tools,
+        tool_choice= {"type": "function", "function": {"name": "get_questions_and_answers"}},  
         )
     except Exception as e:
         logging.info(f"OPENAI CALL FOR EXTRACTING Q & A FAILED: \n {e} \n")
         logging.error(traceback.format_exc())
         quit()
-
-    if isinstance(response, dict):
-        resp_text = response["choices"][0]["message"]
-        qaobject = json.loads(resp_text["function_call"]["arguments"])
-        allqas = qaobject["questions_and_answers"]
+    
+    resp_text = response.choices[0].message
+    if resp_text.tool_calls is not None:
+        qaobject = json.loads(resp_text.tool_calls[0].function.arguments)
+        allqas = qaobject.get("questions_and_answers")
         if len(allqas) != 0:
             logging.info("GET questions and answers from document succeeded\n")
+        #print(allqas)
         return allqas
     else:
         logging.info(f"GET questions and answers from document failed:\n OPENAI DID NOT RETURN A DICTIONARY - RESPONSE IS {response}")
@@ -112,15 +117,19 @@ def get_questions_answers_from(text):
 
 def get_questions_from(text):
     # This is a call to an OpenAI Function Call
-    openai.api_type = "azure"
-    openai.api_base = os.environ["AzureOpenAIEndpoint"]
-    openai.api_version = "2023-07-01-preview"
-    openai.api_key = os.environ["AzureOpenAIKey"]
+    client = OpenAI()
+    #openai.api_type = "azure"
+    #openai.api_base = os.environ["AzureOpenAIEndpoint"]
+    #openai.api_version = "2023-07-01-preview"
+    #openai.api_key = os.environ["AzureOpenAIKey"]
 
     messages= [{"role": "system", "content": "You're an assistant that extracts questions. Only use the functions you have been provided with."},
         {"role": "user", "content": f"Identify and retrieve questions from {text}"}]
-    functions = [
+    
+    tools = [
         {
+            "type": "function",
+            "function": {
             "name": "get_questions",
             "description": "Identify and retrieve questions from the string blob provided.",
             "parameters": {
@@ -142,51 +151,53 @@ def get_questions_from(text):
                 "required": ["questions"]
             }
         }
+        }
     ]
     try:
-        response = openai.ChatCompletion.create(
-        engine="pacha-gpt4-32k",
+        response = client.chat.completions.create(
+        model="gpt-4",
         messages=messages,
-        functions=functions,
-        temperature=0,
-        function_call={"name": "get_questions"},  
+        tools=tools,
+        tool_choice= {"type": "function", "function": {"name": "get_questions"}},  
         )
     except Exception as e:
         logging.info(f"OPENAI CALL FOR EXTRACTING QUESTIONS FAILED: \n {e} \n")
         logging.error(traceback.format_exc())
         quit()
-        
-    if isinstance(response, dict):
-        resp_text = response["choices"][0]["message"]
-        qobject = json.loads(resp_text["function_call"]["arguments"])
-        allqs = qobject["questions"]
+    
+    resp_text = response.choices[0].message
+    if resp_text.tool_calls is not None:
+        qaobject = json.loads(resp_text.tool_calls[0].function.arguments)
+        #print(qaobject)
+        #print(type(qaobject))
+        allqs = qaobject.get("questions")
         if len(allqs) != 0:
             logging.info("GET questions from document succeeded:\n")
         return allqs
     else:
-        logging.info("GET questions from document failed:\n")
+        logging.info(f"GET questions from document failed:\n OPENAI DID NOT RETURN A DICTIONARY - RESPONSE IS {response}")
         quit()
 
-def get_embedding(text, model="pacha-embed"):
+def get_embedding(text, client, model="text-embedding-ada-002"):
     text = text.replace("\n", " ")
     try:
         time.sleep(0.2)
-        response = openai.Embedding.create(input = [text], engine=model)
+        response = client.embeddings.create(input = [text], model=model)
     except Exception as e:
         logging.info(f"OPENAI CALL TO GET EMBEDDING INSTANCE FAILED: \n {e} \n")
         logging.error(traceback.format_exc())
         response = None
 
-    if isinstance(response, dict):
-        return response['data'][0]['embedding']
+    if response is not None:
+        return response.data[0].embedding
     else:
-        logging.info(f"GET embedding instance \n {text} \n failed - NOT A DICTIONARY\n")
         return []
 
 def get_embeddings_from(objects):
+    client = OpenAI()
     embedded= []
     for o in objects:
-        q_embed = get_embedding(o.get("question"))
+        q_embed = get_embedding(o.get("question"), client)
         if len(q_embed) != 0:
             new_dict = {**o, **{'embedding': q_embed}}
             embedded.append(new_dict)
@@ -195,16 +206,20 @@ def get_embeddings_from(objects):
 
 def get_openai_response_to(context, question):
     time.sleep(1)
-    openai.api_type = "azure"
-    openai.api_base = os.environ["AzureOpenAIEndpoint"]
-    openai.api_version = "2023-07-01-preview"
-    openai.api_key = os.environ["AzureOpenAIKey"]
+    client = OpenAI()
+    #openai.api_type = "azure"
+    #openai.api_base = os.environ["AzureOpenAIEndpoint"]
+    #openai.api_version = "2023-07-01-preview"
+    #openai.api_key = os.environ["AzureOpenAIKey"]
 
     messages= [{"role": "system", "content": "You're a consultant who specializes in crafting responses to RFP (Request for Proposal) questions when given a context. If the context is not enough, return an empty string. Only use the functions you have been provided with."},
         {"role": "user", "content": f"Here is the context: \n\n {context} \n Using the context, help me craft an answer to {question}"}]
     
-    functions = [
+    
+    tools = [
         {
+            "type": "function",
+            "function": {
             "name": "craft_response",
             "description": "Craft a response a particular to RFP (Request for Proposal) question when given a context. If the context is not enough, return an empty string.",
             "parameters": {
@@ -218,24 +233,30 @@ def get_openai_response_to(context, question):
                 "required": ["questions_response"]
             }
         }
+        }
     ]
     try:
-        response = openai.ChatCompletion.create(
-        engine="pacha-gpt4",
+        response = client.chat.completions.create(
+        model="gpt-4",
         messages=messages,
-        functions=functions,
-        temperature=0,
-        function_call={"name": "craft_response"},  
+        tools=tools,
+        tool_choice= {"type": "function", "function": {"name": "craft_response"}},  
         )
     except Exception as e:
         logging.info(f"OPENAI CALL FOR CREATING RESPONSES FAILED ERROR: \n {e} \n")
         logging.error(traceback.format_exc())
         response = None
+ 
+    resp_text = response.choices[0].message
+    q_response = json.loads(resp_text.tool_calls[0].function.arguments, strict=False)
+    return q_response
 
+    '''
     if isinstance(response, dict):
         resp_text = response["choices"][0]["message"]
         q_response = json.loads(resp_text["function_call"]["arguments"])
         return q_response
+    '''
 
 def create_all_responses(similar_objs):
     raw_responses = []
@@ -271,5 +292,6 @@ def format_output_path(blob_path_components):
     out_path_split = blob_path_components[1:-1]
     out_path_split.append(os.path.splitext(blob_path_components[-1])[0]+"-result.csv")
     #out_path_split.insert(0,"pilotout")
-    out_path = os.path.join(*out_path_split)
+    #out_path = os.path.join(*out_path_split)
+    out_path = "-".join(out_path_split)
     return out_path
