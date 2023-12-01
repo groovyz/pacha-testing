@@ -24,12 +24,12 @@ def prototype_blob_trigger(myblob: func.InputStream):
         results = doc_operations.get_text_from(source)
         qas = doc_operations.get_questions_answers_from(results["analyzeResult"]["content"])
         embedded_qas = doc_operations.get_embeddings_from(qas)
-        db_operations.insert_into_database(embedded_qas, myblob.uri)
+        db_operations.insert_into_database(embedded_qas, file_name, email)
         
-        final_response = doc_operations.send_email_notification(email, "success", f"{file_name} was successfully loaded into the Elvish Database")
+        doc_operations.send_email_notification(email, "success", f"{file_name} was successfully loaded into the Elvish Database")
         logging.info("FUNCTION SUCCEEDED")
     except Exception as e:
-        final_response = doc_operations.send_email_notification(email, "failure", f"{file_name} failed to load into the Elvish Database, error was {str(e)} <br><br> Please contact Elvish support at sb@offgroove.com or zhao@offgroove.com")
+        doc_operations.send_email_notification(email, "failure", f"{file_name} failed to load into the Elvish Database, error was {str(e)} <br><br> Please contact Elvish support at sb@offgroove.com or zhao@offgroove.com")
         logging.info(f"FUNCTION FAILED, ERROR: {str(e)}")
         
 
@@ -43,13 +43,13 @@ def prototype_input_trigger(askblob: func.InputStream):
     path_components = f"{askblob.name}".split(os.sep)
     email = path_components[2]
     file_name = path_components[-1]
- 
+
     try:
         asksource = askblob.read()
         askresults = doc_operations.get_text_from(asksource)
         askqs = doc_operations.get_questions_from(askresults["analyzeResult"]["content"])
         embedded_askqs = doc_operations.get_embeddings_from(askqs)
-        all_similar = db_operations.get_closest_neighbors_of(embedded_askqs)
+        all_similar = db_operations.get_closest_neighbors_of(embedded_askqs, email)
         openai_responses = doc_operations.create_all_responses(all_similar)
         responses_csv = doc_operations.create_csv(openai_responses)
 

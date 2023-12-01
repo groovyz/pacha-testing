@@ -51,6 +51,7 @@ def get_text_from(document):
     return results
 
 def get_questions_answers_from(text):
+    time.sleep(30)
     client = OpenAI()
     # This is a call to an OpenAI Function Call
     #openai.api_type = "azure"
@@ -250,13 +251,6 @@ def get_openai_response_to(context, question):
     resp_text = response.choices[0].message # type: ignore
     q_response = json.loads(resp_text.tool_calls[0].function.arguments, strict=False) # type: ignore
     return q_response
-
-    '''
-    if isinstance(response, dict):
-        resp_text = response["choices"][0]["message"]
-        q_response = json.loads(resp_text["function_call"]["arguments"])
-        return q_response
-    '''
 
 def create_all_responses(similar_objs):
     raw_responses = []
