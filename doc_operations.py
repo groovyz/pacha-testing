@@ -1,13 +1,32 @@
 import requests
 import time
 import json
-#import openai
 from openai import OpenAI
 import os
+import io
+import csv
 import pandas as pd
 import logging
 import traceback
 import time
+
+def read_csv_to_dict(blob_data):  
+    # Convert bytes to string  
+    str_blob_data = blob_data.decode('utf-8')  
+  
+    # Use StringIO to handle string data as file-like object  
+    string_io = io.StringIO(str_blob_data)  
+  
+    # Use csv's DictReader to create list of dictionaries  
+    reader = csv.DictReader(string_io)  
+    dict_list = [line for line in reader]  
+  
+    # Rename keys in each dictionary  
+    for d in dict_list:  
+        d['question'] = d.pop('Question')  
+        d['answer'] = d.pop('Answer')  
+  
+    return dict_list   
 
 def get_text_from(document):
     # This is a call to the document intelligence endpoint
@@ -17,7 +36,7 @@ def get_text_from(document):
     post_url = endpoint + "/formrecognizer/documentModels/prebuilt-read:analyze?api-version=2023-07-31"
     headers = {
     # Request headers
-    'Content-Type': 'application/pdf',
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'Ocp-Apim-Subscription-Key': apim_key,
         }
     resp = requests.post(url=post_url, data=document, headers=headers)
@@ -48,7 +67,7 @@ def get_text_from(document):
         
     results = resp_json
 
-    return results
+    return results["analyzeResult"]["content"]
 
 def get_questions_answers_from(text):
     time.sleep(30)
@@ -182,7 +201,6 @@ def get_questions_from(text):
 def get_embedding(text, client, model="text-embedding-ada-002"):
     text = text.replace("\n", " ")
     try:
-        time.sleep(0.2)
         response = client.embeddings.create(input = [text], model=model)
     except Exception as e:
         logging.info(f"OPENAI CALL TO GET EMBEDDING INSTANCE FAILED: \n {e} \n")
@@ -255,7 +273,7 @@ def get_openai_response_to(context, question):
 def create_all_responses(similar_objs):
     raw_responses = []
     for obj in similar_objs:
-        context = "\n".join(obj["similar-answers"])
+        context = create_response_context(obj["similar-questions"],obj["similar-answers"])
         question = obj["question"]
         response = get_openai_response_to(context, question)
         if isinstance(response, dict):
@@ -265,6 +283,13 @@ def create_all_responses(similar_objs):
         raw_responses.append(new_dict)
     logging.info("RAW RESPONSES SUCCESSFULLY CREATED")
     return raw_responses
+
+def create_response_context(similar_qs, similar_as):
+    context = []
+    for q, a in zip(similar_qs, similar_as):
+        context.append(f"question: {q} - answer: {a}")
+    return "\n".join(context)
+
 
 def create_csv(responses):
     responses_df = pd.DataFrame(responses)

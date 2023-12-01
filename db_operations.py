@@ -42,7 +42,7 @@ def get_closest_neighbors_of(embedded_qs, e):
         for reference in similar.all():
             similar_qs.append(reference.question)
             similar_as.append(reference.answer)
-        qs_and_similar.append({"question": question["question"], "similiar-questions": similar_qs, "similar-answers": similar_as})
+        qs_and_similar.append({"question": question["question"], "similar-questions": similar_qs, "similar-answers": similar_as})
     session.close()
     logging.info("GET 3 CLOSEST NEIGHBORS SUCCEEDED, SESSION CLOSED")
     return qs_and_similar
